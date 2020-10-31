@@ -478,6 +478,13 @@ struct module {
 	atomic_t refcnt;
 #endif
 
+#ifdef CONFIG_MODULE_EXTRA_COPY
+	void *raw_binary_ptr;
+	unsigned long raw_binary_size;
+	void *linked_binary_ptr;
+	unsigned long linked_binary_size;
+#endif
+
 #ifdef CONFIG_CONSTRUCTORS
 	/* Constructor functions. */
 	ctor_fn_t *ctors;
@@ -669,6 +676,23 @@ static inline bool is_module_percpu_address(unsigned long addr)
 }
 
 static inline bool is_module_text_address(unsigned long addr)
+{
+	return false;
+}
+
+static inline bool within_module_core(unsigned long addr,
+				      const struct module *mod)
+{
+	return false;
+}
+
+static inline bool within_module_init(unsigned long addr,
+				      const struct module *mod)
+{
+	return false;
+}
+
+static inline bool within_module(unsigned long addr, const struct module *mod)
 {
 	return false;
 }

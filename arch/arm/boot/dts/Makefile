@@ -606,7 +606,7 @@ dtb-$(CONFIG_ARCH_PRIMA2) += \
 	prima2-evb.dtb
 dtb-$(CONFIG_ARCH_OXNAS) += \
 	wd-mbwe.dtb
-dtb-$(CONFIG_ARCH_QCOM) += \
+#dtb-$(CONFIG_ARCH_QCOM) += \
 	qcom-apq8060-dragonboard.dtb \
 	qcom-apq8064-arrow-sd-600eval.dtb \
 	qcom-apq8064-cm-qs600.dtb \
@@ -970,5 +970,10 @@ endif
 targets += dtbs dtbs_install
 targets += $(DTB_LIST)
 
+ifeq ($(CONFIG_ARM64),y)
 always		:= $(DTB_LIST)
+else
+dtbs: $(addprefix $(obj)/, $(DTB_LIST))
+	$(Q)rm -f $(obj)/../*.dtb
+endif
 clean-files	:= *.dtb

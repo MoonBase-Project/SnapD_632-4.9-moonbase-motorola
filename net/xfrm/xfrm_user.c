@@ -933,6 +933,12 @@ static int copy_to_user_state_extra(struct xfrm_state *x,
 
 	if (x->security)
 		ret = copy_sec_ctx(x->security, skb);
+	if (x->props.output_mark) {
+		ret = nla_put_u32(skb, XFRMA_OUTPUT_MARK, x->props.output_mark);
+		if (ret)
+			goto out;
+	}
+
 out:
 	return ret;
 }
@@ -1483,6 +1489,12 @@ static int validate_tmpl(int nr, struct xfrm_user_tmpl *ut, u16 family)
 				return -EINVAL;
 			break;
 		}
+		if (ut[i].mode >= XFRM_MODE_MAX)
+			return -EINVAL;
+
+		if (ut[i].mode >= XFRM_MODE_MAX)
+			return -EINVAL;
+
 		if (ut[i].mode >= XFRM_MODE_MAX)
 			return -EINVAL;
 
