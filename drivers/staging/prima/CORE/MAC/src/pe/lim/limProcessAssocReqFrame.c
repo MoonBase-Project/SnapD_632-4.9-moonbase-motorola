@@ -1544,9 +1544,10 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                                    subType, 0,psessionEntry, NULL);
 
                     goto error;
-                    
+
                 }
 
+#ifdef WLAN_FEATURE_SAE
                 akm_type = lim_translate_rsn_oui_to_akm_type(
                                     Dot11fIERSN.akm_suite[0]);
 
@@ -1565,6 +1566,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
                         goto error;
                     }
                 }
+#endif
 
             } /* end - if(pAssocReq->rsnPresent) */
             if((!pAssocReq->rsnPresent) && pAssocReq->wpaPresent)
