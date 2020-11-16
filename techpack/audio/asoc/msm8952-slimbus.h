@@ -30,6 +30,9 @@ enum {
 	MI2S_MAX,
 };
 
+#define MCLK_RATE_12P288	12288000
+#define SCLK_RATE_1P536  	1536000
+
 struct msm8952_codec {
 	void* (*get_afe_config_fn)(struct snd_soc_codec *codec,
 			enum afe_config_type config_type);
@@ -88,6 +91,7 @@ int msm_proxy_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 					struct snd_pcm_hw_params *params);
 int msm_tdm_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			       struct snd_pcm_hw_params *params);
+int msm_madera_init(struct snd_soc_pcm_runtime *rtd);
 int msm_audrx_init(struct snd_soc_pcm_runtime *rtd);
 int msm_mi2s_snd_hw_params(struct snd_pcm_substream *substream,
 			     struct snd_pcm_hw_params *params);

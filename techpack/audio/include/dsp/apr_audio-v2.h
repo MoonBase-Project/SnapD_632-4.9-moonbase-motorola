@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1120,7 +1120,7 @@ struct adm_cmd_connect_afe_port_v5 {
 #define AFE_PORT_ID_SLIMBUS_RANGE_SIZE	0xA
 
 /* Size of the range of port IDs for real-time proxy ports. */
-#define  AFE_PORT_ID_RT_PROXY_PORT_RANGE_SIZE	0x4
+#define  AFE_PORT_ID_RT_PROXY_PORT_RANGE_SIZE	0x2
 
 /* Size of the range of port IDs for pseudoports. */
 #define AFE_PORT_ID_PSEUDOPORT_RANGE_SIZE	0x5
@@ -1315,16 +1315,6 @@ struct adm_cmd_connect_afe_port_v5 {
  */
 #define AFE_PORT_ID_VOICE2_PLAYBACK_TX  0x8002
 #define AFE_PORT_ID_VOICE_PLAYBACK_TX   0x8005
-
-/*
- * Proxyport used for voice call data processing.
- * In cases like call-screening feature, where user can communicate
- * with caller with the help of "call screen" mode, and without
- * connecting the call with any HW input/output devices in the phon,
- * voice call can use Pseudo port to start voice data processing.
- */
-#define RT_PROXY_PORT_002_TX  0x2003
-#define RT_PROXY_PORT_002_RX  0x2002
 
 #define AFE_PORT_ID_PRIMARY_TDM_RX \
 	(AFE_PORT_ID_TDM_PORT_RANGE_START + 0x00)
@@ -4227,6 +4217,7 @@ struct afe_lpass_core_shared_clk_config_command {
 #define VPM_TX_DM_FLUENCE_COPP_TOPOLOGY			0x00010F72
 #define VPM_TX_QMIC_FLUENCE_COPP_TOPOLOGY		0x00010F75
 #define VPM_TX_DM_RFECNS_COPP_TOPOLOGY			0x00010F86
+#define VPM_TX_MOT_COPP_TOPOLOGY			0x1000E004
 #define ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DTS_HPX		0x10015002
 #define ADM_CMD_COPP_OPEN_TOPOLOGY_ID_AUDIOSPHERE	0x10028000
 

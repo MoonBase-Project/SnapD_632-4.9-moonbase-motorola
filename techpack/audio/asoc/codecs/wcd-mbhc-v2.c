@@ -556,10 +556,11 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 	struct snd_soc_codec *codec = mbhc->codec;
 	bool is_pa_on = false;
 	u8 fsm_en = 0;
+	u16 elect_result;
 
 	WCD_MBHC_RSC_ASSERT_LOCKED(mbhc);
 
-	pr_debug("%s: enter insertion %d hph_status %x\n",
+	pr_info("%s: enter insertion %d hph_status %x\n",
 		 __func__, insertion, mbhc->hph_status);
 	if (!insertion) {
 		/* Report removal */
@@ -597,7 +598,7 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 
 		mbhc->hph_type = WCD_MBHC_HPH_NONE;
 		mbhc->zl = mbhc->zr = 0;
-		pr_debug("%s: Reporting removal %d(%x)\n", __func__,
+		pr_info("%s: Reporting removal %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				mbhc->hph_status, WCD_MBHC_JACK_MASK);
@@ -681,6 +682,9 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		if (mbhc->mbhc_cb->hph_pa_on_status)
 			is_pa_on = mbhc->mbhc_cb->hph_pa_on_status(codec);
 
+		WCD_MBHC_REG_READ(WCD_MBHC_ELECT_RESULT, elect_result);
+		pr_info("%s: elect_result: %d\n", __func__, elect_result);
+
 		if (mbhc->impedance_detect &&
 			mbhc->mbhc_cb->compute_impedance &&
 			(mbhc->mbhc_cfg->linein_th != 0) &&
@@ -712,15 +716,29 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 							mbhc->hph_status,
 							WCD_MBHC_JACK_MASK);
 				}
-				pr_debug("%s: Marking jack type as SND_JACK_LINEOUT\n",
+				pr_info("%s: Marking jack type as SND_JACK_LINEOUT\n",
 				__func__);
+			} else if (((mbhc->zl > mbhc->mbhc_cfg->selfstick_th &&
+				mbhc->zl < MAX_IMPED) &&
+				(mbhc->zr > mbhc->mbhc_cfg->selfstick_th &&
+				mbhc->zr < MAX_IMPED) &&
+				(jack_type == SND_JACK_UNSUPPORTED))) {
+					jack_type = SND_JACK_HEADSET;
+					mbhc->current_plug = MBHC_PLUG_TYPE_HEADSET;
+					mbhc->mbhc_cfg->is_selfistick = true;
+					mbhc->jiffies_atreport = jiffies;
 			}
 		}
 
 		mbhc->hph_status |= jack_type;
 
-		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
-			 jack_type, mbhc->hph_status);
+		if ((jack_type == SND_JACK_LINEOUT) && elect_result) {
+			mbhc->hph_status = 0;
+			pr_info("%s: DTV dongle detected\n", __func__);
+		}
+
+		pr_info("%s: Reporting insertion %d(%x),zl %d ohm,zr %d ohm\n", __func__,
+			 jack_type, mbhc->hph_status, mbhc->zl, mbhc->zr);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				    (mbhc->hph_status | SND_JACK_MECHANICAL),
 				    WCD_MBHC_JACK_MASK);
@@ -732,6 +750,23 @@ EXPORT_SYMBOL(wcd_mbhc_report_plug);
 
 void wcd_mbhc_elec_hs_report_unplug(struct wcd_mbhc *mbhc)
 {
+	u32 zl_temp = 0, zr_temp = 0;
+	u8 fsm_en_temp = 0;
+	u8 is_pa_hphl_on = 0;
+	struct snd_soc_codec *codec;
+	struct snd_soc_card *card;
+	u8 is_seperate_headphone = 0;
+
+	codec = mbhc->codec;
+	card = codec->component.card;
+
+	if (of_find_property(card->dev->of_node,
+		"qcom,msm-mbhc-seperate-headphone-dtv",
+		NULL)) {
+		is_seperate_headphone = 1;
+		pr_debug("%s: need to seperate headphone or dtv dongle\n", __func__);
+	}
+
 	/* cancel pending button press */
 	if (wcd_cancel_btn_work(mbhc))
 		pr_debug("%s: button press is canceled\n", __func__);
@@ -742,30 +777,98 @@ void wcd_mbhc_elec_hs_report_unplug(struct wcd_mbhc *mbhc)
 	else
 		pr_info("%s: hs_detect_plug work not cancelled\n", __func__);
 
-	pr_debug("%s: Report extension cable\n", __func__);
-	wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
-	/*
-	 * If PA is enabled HPHL schmitt trigger can
-	 * be unreliable, make sure to disable it
-	 */
-	if (test_bit(WCD_MBHC_EVENT_PA_HPHL,
-		&mbhc->event_state))
-		wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
-	/*
-	 * Disable HPHL trigger and MIC Schmitt triggers.
-	 * Setup for insertion detection.
-	 */
-	wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_REM,
-			     false);
-	wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_NONE);
-	/* Disable HW FSM */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 3);
+	if(is_seperate_headphone) {
+		if (test_bit(WCD_MBHC_EVENT_PA_HPHL,
+			&mbhc->event_state)) {
+			wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+			is_pa_hphl_on =1;
+		}
+		msleep(100);
 
-	/* Set the detection type appropriately */
-	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_DETECTION_TYPE, 1);
-	wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_INS,
-			     true);
+		/* judge hphl&hphr registers to seperate headphone or DTV dongle */
+		WCD_MBHC_REG_READ(WCD_MBHC_FSM_EN, fsm_en_temp);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MUX_CTL,
+					 0);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
+		mbhc->mbhc_cb->compute_impedance(mbhc,
+				&zl_temp, &zr_temp);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN,
+					 fsm_en_temp);
+
+		msleep(100);
+
+		if(is_pa_hphl_on) {
+			is_pa_hphl_on = 0;
+			wcd_mbhc_clr_and_turnon_hph_padac(mbhc);
+			msleep(100);
+		}
+
+		if((zl_temp > 10000) && (zr_temp > 10000)) {
+			pr_debug("%s: is DTV Dongle\n", __func__);
+			wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
+
+			/*
+			* If PA is enabled HPHL schmitt trigger can
+			* be unreliable, make sure to disable it
+			*/
+			if (test_bit(WCD_MBHC_EVENT_PA_HPHL,
+				&mbhc->event_state))
+				wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+
+		}
+		else {
+			pr_debug("%s: is headphone\n", __func__);
+			wcd_mbhc_report_plug(mbhc, 1, SND_JACK_HEADPHONE);
+		}
+
+		/*
+		* Disable HPHL trigger and MIC Schmitt triggers.
+		* Setup for insertion detection.
+		*/
+		wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_REM,
+				     false);
+		wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_NONE);
+		/* Disable HW FSM */
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
+
+		if((zl_temp > 10000) && (zr_temp > 10000)) {
+			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 3);
+			/* Set the detection type appropriately */
+			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_DETECTION_TYPE, 1);
+			wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_INS,
+					     true);
+		}
+		else {
+			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 0);
+		}
+	}
+	else {
+		pr_debug("%s: Report extension cable\n", __func__);
+		wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
+		/*
+		 * If PA is enabled HPHL schmitt trigger can
+		 * be unreliable, make sure to disable it
+		 */
+		if (test_bit(WCD_MBHC_EVENT_PA_HPHL,
+			&mbhc->event_state))
+			wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+		/*
+		 * Disable HPHL trigger and MIC Schmitt triggers.
+		 * Setup for insertion detection.
+		 */
+		wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_REM,
+				     false);
+		wcd_enable_curr_micbias(mbhc, WCD_MBHC_EN_NONE);
+		/* Disable HW FSM */
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 3);
+
+		/* Set the detection type appropriately */
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_DETECTION_TYPE, 1);
+		wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_INS,
+				     true);
+	}
 }
 EXPORT_SYMBOL(wcd_mbhc_elec_hs_report_unplug);
 
@@ -934,6 +1037,8 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 			/* make sure to turn off Rbias */
 			if (mbhc->mbhc_cb->micb_internal)
 				mbhc->mbhc_cb->micb_internal(codec, 1, false);
+			if (mbhc->mbhc_cfg->is_selfistick)
+				mbhc->mbhc_cfg->is_selfistick = false;
 			/* Pulldown micbias */
 			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_PULLDOWN_CTRL, 1);
 			jack_type = SND_JACK_HEADSET;
@@ -980,7 +1085,7 @@ static irqreturn_t wcd_mbhc_mech_plug_detect_irq(int irq, void *data)
 	int r = IRQ_HANDLED;
 	struct wcd_mbhc *mbhc = data;
 
-	pr_debug("%s: enter\n", __func__);
+	pr_info("%s: enter\n", __func__);
 	if (unlikely((mbhc->mbhc_cb->lock_sleep(mbhc, true)) == false)) {
 		pr_warn("%s: failed to hold suspend\n", __func__);
 		r = IRQ_NONE;

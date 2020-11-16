@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2705,8 +2705,8 @@ static int adm_arrange_mch_map_v8(
 		} else if (channel_mode == 6) {
 			ep_payload->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
-			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_FC;
-			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_FC;
 			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LS;
 			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RS;
 		} else if (channel_mode == 7) {
@@ -2714,18 +2714,18 @@ static int adm_arrange_mch_map_v8(
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
 			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_FC;
 			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_LFE;
-			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LS;
-			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RS;
+			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LB;
+			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RB;
 			ep_payload->dev_channel_mapping[6] = PCM_CHANNEL_CS;
 		} else if (channel_mode == 8) {
 			ep_payload->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
-			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_FC;
-			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_LFE;
-			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LB;
-			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RB;
-			ep_payload->dev_channel_mapping[6] = PCM_CHANNEL_LS;
-			ep_payload->dev_channel_mapping[7] = PCM_CHANNEL_RS;
+			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_FC;
+			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LS;
+			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RS;
+			ep_payload->dev_channel_mapping[6] = PCM_CHANNEL_LB;
+			ep_payload->dev_channel_mapping[7] = PCM_CHANNEL_RB;
 		} else if (channel_mode == 10) {
 			ep_payload->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
@@ -2740,8 +2740,8 @@ static int adm_arrange_mch_map_v8(
 		} else if (channel_mode == 12) {
 			ep_payload->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
-			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_FC;
-			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_FC;
 			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LB;
 			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RB;
 			ep_payload->dev_channel_mapping[6] = PCM_CHANNEL_LS;
@@ -2753,8 +2753,8 @@ static int adm_arrange_mch_map_v8(
 		} else if (channel_mode == 16) {
 			ep_payload->dev_channel_mapping[0] = PCM_CHANNEL_FL;
 			ep_payload->dev_channel_mapping[1] = PCM_CHANNEL_FR;
-			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_FC;
-			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[2] = PCM_CHANNEL_LFE;
+			ep_payload->dev_channel_mapping[3] = PCM_CHANNEL_FC;
 			ep_payload->dev_channel_mapping[4] = PCM_CHANNEL_LB;
 			ep_payload->dev_channel_mapping[5] = PCM_CHANNEL_RB;
 			ep_payload->dev_channel_mapping[6] = PCM_CHANNEL_LS;
@@ -3028,7 +3028,8 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	if ((topology == VPM_TX_SM_ECNS_V2_COPP_TOPOLOGY) ||
 	    (topology == VPM_TX_SM_ECNS_COPP_TOPOLOGY) ||
 	    (topology == VPM_TX_DM_FLUENCE_COPP_TOPOLOGY) ||
-	    (topology == VPM_TX_DM_RFECNS_COPP_TOPOLOGY))
+	    (topology == VPM_TX_DM_RFECNS_COPP_TOPOLOGY) ||
+	    (topology == VPM_TX_MOT_COPP_TOPOLOGY))
 		rate = 16000;
 
 	/*
@@ -4675,6 +4676,97 @@ fail_cmd:
 	return rc;
 }
 EXPORT_SYMBOL(adm_send_set_multichannel_ec_primary_mic_ch);
+
+#ifdef CONFIG_SND_SOC_AWINIC_AW882XX
+int aw_adm_param_enable(int port_id, int module_id,  int param_id, int enable)
+{
+	struct audproc_enable_param_t adm_mod_enable;
+	int sz = 0;
+	int rc  = 0;
+	int port_idx;
+	int copp_idx = 0;
+
+	pr_debug("%s port_id %d, module_id 0x%x, enable %d\n",
+		 __func__, port_id,  module_id,  enable);
+	port_id = afe_convert_virtual_to_portid(port_id);
+	port_idx = adm_validate_and_get_port_index(port_id);
+	if (port_idx < 0) {
+		pr_err("%s: Invalid port_id %#x\n", __func__, port_id);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
+	copp_idx= adm_get_default_copp_idx(port_id);
+
+	if (copp_idx < 0 || copp_idx >= MAX_COPPS_PER_PORT) {
+		pr_err("%s: Invalid copp_num: %d\n", __func__, copp_idx);
+		return -EINVAL;
+	}
+
+	sz = sizeof(struct audproc_enable_param_t);
+
+	adm_mod_enable.pp_params.hdr.hdr_field =
+				APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
+				APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
+	adm_mod_enable.pp_params.hdr.pkt_size = sz;
+	adm_mod_enable.pp_params.hdr.src_svc = APR_SVC_ADM;
+	adm_mod_enable.pp_params.hdr.src_domain = APR_DOMAIN_APPS;
+	adm_mod_enable.pp_params.hdr.src_port = port_id;
+	adm_mod_enable.pp_params.hdr.dest_svc = APR_SVC_ADM;
+	adm_mod_enable.pp_params.hdr.dest_domain = APR_DOMAIN_ADSP;
+	adm_mod_enable.pp_params.hdr.dest_port =
+			atomic_read(&this_adm.copp.id[port_idx][copp_idx]);
+	adm_mod_enable.pp_params.hdr.token =  port_idx << 16 | copp_idx;
+	adm_mod_enable.pp_params.hdr.opcode = ADM_CMD_SET_PP_PARAMS_V5;
+	adm_mod_enable.pp_params.payload_addr_lsw = 0;
+	adm_mod_enable.pp_params.payload_addr_msw = 0;
+	adm_mod_enable.pp_params.mem_map_handle = 0;
+	adm_mod_enable.pp_params.payload_size = sizeof(adm_mod_enable) -
+				sizeof(adm_mod_enable.pp_params) +
+				sizeof(adm_mod_enable.pp_params.params);
+	adm_mod_enable.pp_params.params.module_id = module_id;
+	adm_mod_enable.pp_params.params.param_id = param_id;
+	adm_mod_enable.pp_params.params.param_size =
+		adm_mod_enable.pp_params.payload_size -
+		sizeof(adm_mod_enable.pp_params.params);
+	adm_mod_enable.pp_params.params.reserved = 0;
+	adm_mod_enable.enable = enable;
+
+	atomic_set(&this_adm.copp.stat[port_idx][copp_idx], -1);
+
+	rc = apr_send_pkt(this_adm.apr, (uint32_t *)&adm_mod_enable);
+	if (rc < 0) {
+		pr_err("%s: Set params failed port = %#x\n",
+			__func__, port_id);
+		rc = -EINVAL;
+		goto fail_cmd;
+	}
+	/* Wait for the callback */
+	rc = wait_event_timeout(this_adm.copp.wait[port_idx][copp_idx],
+		atomic_read(&this_adm.copp.stat[port_idx][copp_idx]) >= 0,
+		msecs_to_jiffies(TIMEOUT_MS));
+	if (!rc) {
+		pr_err("%s:  module %x  enable %d timed out on port = %#x\n",
+			 __func__, module_id, enable, port_id);
+		rc = -EINVAL;
+		goto fail_cmd;
+	} else if (atomic_read(&this_adm.copp.stat
+				[port_idx][copp_idx]) > 0) {
+		pr_err("%s: DSP returned error[%s]\n",
+				__func__, adsp_err_get_err_str(
+				atomic_read(&this_adm.copp.stat
+				[port_idx][copp_idx])));
+		rc = adsp_err_get_lnx_err_code(
+				atomic_read(&this_adm.copp.stat
+					[port_idx][copp_idx]));
+		goto fail_cmd;
+	}
+	rc = 0;
+fail_cmd:
+	return rc;
+
+}
+EXPORT_SYMBOL(aw_adm_param_enable);
+#endif
 
 /**
  * adm_param_enable -

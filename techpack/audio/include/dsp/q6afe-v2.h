@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -226,9 +226,6 @@ enum {
 	IDX_AFE_PORT_ID_QUINARY_TDM_RX_7,
 	IDX_AFE_PORT_ID_QUINARY_TDM_TX_7,
 	IDX_AFE_LOOPBACK_TX,
-	/* IDX 161 -> 162 */
-	IDX_RT_PROXY_PORT_002_RX,
-	IDX_RT_PROXY_PORT_002_TX,
 	AFE_MAX_PORTS
 };
 
@@ -400,4 +397,10 @@ int afe_tdm_port_start(u16 port_id, struct afe_tdm_port_config *tdm_port,
 void afe_set_routing_callback(routing_cb cb);
 int afe_get_av_dev_drift(struct afe_param_id_dev_timing_stats *timing_stats,
 		u16 port);
+
+#ifdef CONFIG_SND_SOC_TAS2560
+int tas2560_algo_afe_set_callback(
+	int32_t (*tas2560_algo_callback_func)(struct apr_client_data *data));
+int tas2560_algo_afe_apr_send_pkt(void *data, int index);
+#endif
 #endif /* __Q6AFE_V2_H__ */
