@@ -1,7 +1,7 @@
 VERSION = 4
 PATCHLEVEL = 9
 SUBLEVEL = 228
-EXTRAVERSION = -OceanMoon
+EXTRAVERSION =
 NAME = Roaring Lionus
 
 KBUILD_CFLAGS   += -O3 $(call cc-disable-warning,maybe-uninitialized,)
