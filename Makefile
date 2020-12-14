@@ -7,6 +7,17 @@ NAME = Roaring Lionus
 KBUILD_CFLAGS   += -O3 $(call cc-disable-warning,maybe-uninitialized,)
 KCFLAGS         += -O3 -march=armv8-a -mcpu=cortex-a53 -mtune=cortex-a53
 
+ifdef CONFIG_LLVM_POLLY
+KBUILD_CFLAGS  += -mllvm -polly \
+                  -mllvm -polly-run-dce \
+                  -mllvm -polly-run-inliner \
+                  -mllvm -polly-opt-fusion=max \
+                  -mllvm -polly-ast-use-context \
+                  -mllvm -polly-detect-keep-going \
+                  -mllvm -polly-vectorizer=stripmine \
+                  -mllvm -polly-invariant-load-hoisting
+endif
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
