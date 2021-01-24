@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.9.253 Kernel Configuration
+# Linux/arm64 4.9.269 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -44,9 +44,9 @@ CONFIG_THREAD_INFO_IN_TASK=y
 # General setup
 #
 CONFIG_INIT_ENV_ARG_LIMIT=32
-CONFIG_CROSS_COMPILE="/usr/bin/aarch64-unknown-linux-gnu-"
+CONFIG_CROSS_COMPILE=""
 # CONFIG_COMPILE_TEST is not set
-CONFIG_LOCALVERSION="-ChannelMoon-perf"
+CONFIG_LOCALVERSION="-SDM632-Fury"
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_DEFAULT_HOSTNAME="(none)"
 CONFIG_SWAP=y
@@ -546,7 +546,7 @@ CONFIG_BINFMT_SCRIPT=y
 CONFIG_COMPAT=y
 CONFIG_KUSER_HELPERS=y
 CONFIG_COMPAT_VDSO=y
-CONFIG_CROSS_COMPILE_ARM32="/usr/bin/armv7-unknown-linux-gnueabihf-"
+CONFIG_CROSS_COMPILE_ARM32=""
 CONFIG_KEYS_COMPAT=y
 
 #
