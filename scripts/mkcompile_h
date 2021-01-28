@@ -76,8 +76,14 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
   echo \#define LINUX_COMPILE_BY \"`echo JavaShin-X | $UTS_TRUNCATE`\"
   echo \#define LINUX_COMPILE_HOST \"`echo WrongDevice | $UTS_TRUNCATE`\"
 
-  echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`\"
+  CC_VERSION="Android (7095922, based on r407598b) clang version 12.0.2"
+  LD_VERSION="GNU/Binutils LD.BFD (MoonBase ToolChain 2.36)"
+  printf '#define LINUX_COMPILER "%s"\n' "$CC_VERSION, $LD_VERSION"
 ) > .tmpcompile
+
+
+#  echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | grep ' version ' | sed 's/[[:space:]]*$//'`\"
+#) > .tmpcompile
 
 # Only replace the real compile.h if the new one is different,
 # in order to preserve the timestamp and avoid unnecessary
