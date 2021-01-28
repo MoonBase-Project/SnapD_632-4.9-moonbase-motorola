@@ -1,3 +1,10 @@
+#!/bin/bash
+
+#FasterBuild. run before start - build
+# echo 'tmpfs   /OUT  tmpfs size=15G,uid=root,gid=root,mode=775,noatime,noauto  0 0'  >> /etc/fstab
+
+# Script To Compile Stock MoonBase™ Kernels.
+
 clear
 umount /OUT
 rm -rf /OUT
@@ -7,14 +14,14 @@ mkdir /OUT
 mount /OUT
 export PATH="/cross-tc/clang/bin:$PATH"
 export KBUILD_BUILD_VERSION=1
-export KBUILD_BUILD_USER=javashin
-export KBUILD_BUILD_HOST=moonbase
+export KBUILD_BUILD_USER=JavaShin-X
+export KBUILD_BUILD_HOST=WrongDevice
 export CROSS_COMPILE="/usr/bin/aarch64-unknown-linux-gnu-"
 export CROSS_COMPILE_ARM32="/usr/bin/armv7-unknown-linux-gnueabihf-"
 export LD_LIBRARY_PATH="/cross-tc/clang/lib64:$LD_LIBRARY_PATH"
 
-#KCFLAGS+="-O3 -mllvm -polly -fno-stack-protector -march=armv8-a+fp+simd+crc+crypto -mcpu=kryo -mtune=kryo -Wno-error=misleading-indentation -Wno-enum-conversion"
-# Gcc-11-Optimize - Clang Optimize Hacks.
+# Gcc-11-Optimize - Clang Optimize Hacks. Outside KBUILD System Fully Working. 
+# To Be Used With Clang Compiler With Polly Support (Polyhedral Compilation)
 
 export KCFLAGS+=" -O3 -mllvm -polly -march=armv8-a+fp+simd+crc+crypto -mcpu=kryo -mtune=kryo \
 --param=inline-min-speedup=15 --param=max-inline-insns-single=200 -fno-stack-protector \
@@ -33,4 +40,27 @@ make -j$(nproc --all) O=/OUT ARCH=arm64 \
 CC=clang LD=/usr/bin/aarch64-unknown-linux-gnu-ld.bfd \
 CLANG_TRIPLE=/usr/bin/aarch64-unknown-linux-gnu- \
 CROSS_COMPILE=/usr/bin/aarch64-unknown-linux-gnu- CROSS_COMPILE_ARM32=/usr/bin/armv7-unknown-linux-gnueabihf- \
-CLANG_TRIPLE_ARM32=/usr/bin/armv7-unknown-linux-gnueabihf- oldconfig prepare nconfig Image.gz-dtb modules dtbo.img V=0
+CLANG_TRIPLE_ARM32=/usr/bin/armv7-unknown-linux-gnueabihf- oldconfig prepare nconfig Image.gz-dtb dtbo.img modules V=0
+
+# Move Compiled Files To $PWD Current Dir.
+# Boot Img
+cp /OUT/arch/arm64/boot/Image.gz-dtb .
+ls -lash /OUT/arch/arm64/boot/Image.gz-dtb
+ls -lash ./Image.gz-dtb
+# Dtbo Img
+cp /OUT/arch/arm64/boot/dtbo.img .
+ls -lash /OUT/arch/arm64/boot/dtbo.img
+ls -lash ./dtbo.img
+# Prima Kernel Module
+cp /OUT/drivers/staging/prima/wlan.ko ./pronto_wlan.ko
+ls -lash /OUT/drivers/staging/prima/wlan.ko
+ls -lash ./pronto_wlan.ko
+
+# Ready For Verification And Manual Packing Zip
+# Done By JavaShin-X 2021.
+
+
+
+
+
+
