@@ -20,6 +20,12 @@ KBUILD_CFLAGS  += -mllvm -polly \
 endif
 endif
 
+ifeq ($(cc-name),gcc)
+KBUILD_CFLAGS   += $(call cc-option,-mcpu=kyro,$(call cc-option,-mcpu=cortex-a73.cortex-a53 -march=armv8-a+fp+simd+crc+crypto,-march=armv8-a+fp+simd+crc+crypto))
+KCFLAGS         += -O3 -fno-stack-protector -march=armv8-a+fp+simd+crc+crypto -mcpu=cortex-a73.cortex-a53 -mtune=cortex-a73.cortex-a53 -pipe
+endif
+
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
