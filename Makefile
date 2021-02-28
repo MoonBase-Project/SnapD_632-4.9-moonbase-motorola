@@ -5,6 +5,10 @@ EXTRAVERSION =
 NAME = Roaring Lionus
 
 KBUILD_CFLAGS   += -O3 $(call cc-disable-warning,maybe-uninitialized,)
+ifeq ($(cc-name),gcc)
+KBUILD_CFLAGS   += $(call cc-option,-mcpu=kyro,$(call cc-option,-mcpu=cortex-a73.cortex-a53 -march=armv8-a+fp+simd+crc+crypto,-march=armv8-a+fp+simd+crc+crypto))
+KCFLAGS         += -O3 -fno-stack-protector -march=armv8-a+fp+simd+crc+crypto -mcpu=cortex-a73.cortex-a53 -mtune=cortex-a73.cortex-a53 -pipe
+endif
 
 ifeq ($(cc-name),clang)
 KBUILD_CFLAGS += -O3 -march=armv8-a -mcpu=cortex-a53 -mtune=cortex-a53
